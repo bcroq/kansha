@@ -64,7 +64,8 @@ class Board(object):
 
     def __init__(self, id_, app_title, app_banner, custom_css, mail_sender, assets_manager,
                  search_engine, on_board_delete=None, on_board_archive=None,
-                 on_board_restore=None, on_board_leave=None, load_data=True):
+                 on_board_restore=None, on_board_leave=None, load_data=True,
+                 columns_service=None):
         """Initialization
 
         In:
@@ -72,6 +73,8 @@ class Board(object):
           -- ``mail_sender`` -- Mail object, use to send mail
           -- ``on_board_delete`` -- function to call when the board is deleted
         """
+        self._columns_service = columns_service
+
         self.model = 'columns'
         self.app_title = app_title
         self.app_banner = app_banner
@@ -153,7 +156,9 @@ class Board(object):
         columns = []
         archive = None
         for c in self.data.columns:
-            col = column.Column(c.id, self, self.assets_manager, self.search_engine, c)
+            col = self._columns_service.create_component(
+                c.id, self, self.assets_manager, self.search_engine, c
+            )
             if c.archive:
                 archive = col
             else:
@@ -165,7 +170,9 @@ class Board(object):
             # Create the unique archive column
             last_idx = max(c.index for c in self.data.columns)
             col_id = self.create_column(index=last_idx + 1, title=_('Archive'), archive=True)
-            self.archive_column = column.Column(col_id, self, self.assets_manager, self.search_engine)
+            self.archive_column = self._columns_service.create_component(
+                col_id, self, self.assets_manager, self.search_engine
+            )
 
         if self.archive and security.has_permissions('manage', self):
             columns.append(component.Component(self.archive_column))
@@ -184,10 +191,24 @@ class Board(object):
 
     def refresh(self):
         if self.archive:
-            self.columns = [component.Component(column.Column(c.id, self, self.assets_manager, self.search_engine)) for c in self.data.columns]
+            self.columns = [
+                component.Component(
+                    self._columns_service.create_component(
+                        c.id, self, self.assets_manager, self.search_engine
+                    )
+                )
+                for c in self.data.columns
+            ]
         else:
-            self.columns = [component.Component(column.Column(c.id, self, self.assets_manager, self.search_engine)) for c in self.data.columns if not c.archive]
-
+            self.columns = [
+                component.Component(
+                    self._columns_service.create_component(
+                        c.id, self, self.assets_manager, self.search_engine
+                    )
+                )
+                for c in self.data.columns
+                if not c.archive
+            ]
 
     @property
     def all_members(self):
@@ -259,7 +280,14 @@ class Board(object):
             return False
         col = DataColumn.create_column(self.data, index, title, nb_cards, archive=archive)
         if not archive or (archive and self.archive):
-            self.columns.insert(index, component.Component(column.Column(col.id, self, self.assets_manager, self.search_engine), 'new'))
+            self.columns.insert(
+                index, component.Component(
+                    self._columns_service.create_component(
+                        col.id, self, self.assets_manager, self.search_engine
+                    ),
+                    'new'
+                )
+            )
         self.increase_version()
         return col.id
 

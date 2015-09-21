@@ -17,10 +17,14 @@
 #=-
 import random
 import string
+
+import mock
 from nagare.database import session
 from nagare import local, security
 from kansha.board import boardsmanager
 from kansha.board import comp as board
+from kansha.card import comp as cards_comp
+from kansha.column import comp as columns_comp
 from kansha.user import usermanager
 from kansha.security import SecurityManager
 from kansha.services.dummyassetsmanager.dummyassetsmanager import DummyAssetsManager
@@ -115,4 +119,30 @@ def create_board():
     session.add(data_board)
     session.flush()
     assets_manager = DummyAssetsManager()
-    return board.Board(data_board.id, 'boards', '', '', '', assets_manager, None)
+
+    cards_service = mock.Mock()
+    cards_service.create_component.side_effect = (
+        lambda *args, **kw: cards_comp.Card(*args, **kw)
+    )
+
+    columns_service = mock.Mock()
+    columns_service.create_component.side_effect = (
+        lambda *args, **kw: _create_column_component(args, kw, cards_service)
+
+    )
+
+    return board.Board(
+        data_board.id,
+        'boards',
+        '',
+        '',
+        '',
+        assets_manager,
+        None,
+        columns_service=columns_service
+    )
+
+
+def _create_column_component(args, kw, cards_service):
+    kw.update(cards_service=cards_service)
+    return columns_comp.Column(*args, **kw)

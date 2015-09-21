@@ -13,7 +13,6 @@ from elixir import ManyToMany, ManyToOne, OneToMany, OneToOne
 from elixir import Field, Unicode, Integer, DateTime, Date, UnicodeText
 from sqlalchemy.orm import subqueryload
 from nagare.database import session
-import datetime
 
 from kansha.models import Entity
 
@@ -44,22 +43,6 @@ class DataCard(Entity):
         for event in self.history:
             session.delete(event)
         session.flush()
-
-    @classmethod
-    def create_card(cls, column, title, user):
-        """Create new column
-
-        In:
-            - ``column`` -- DataColumn, father of the column
-            - ``title`` -- title of the card
-            - ``user`` -- DataUser, author of the card
-        Return:
-            - created DataCard instance
-        """
-        new_card = cls(title=title, author=user,
-                       creation_date=datetime.datetime.utcnow())
-        column.cards.append(new_card)
-        return new_card
 
     @classmethod
     def delete_card(cls, card):

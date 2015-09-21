@@ -25,12 +25,15 @@ class Column(object):
     """Column component
     """
 
-    def __init__(self, id_, board, assets_manager, search_engine, data=None):
+    def __init__(self, id_, board, assets_manager, search_engine, data=None,
+                 cards_service=None):
         """Initialization
 
         In:
             - ``id_`` -- the id of the column
         """
+        self._cards_service = cards_service
+
         self.db_id = id_
         self._data = data
         data = data if data else self.data
@@ -43,8 +46,14 @@ class Column(object):
         self.title = component.Component(ColumnTitle(self))
         self.title.on_answer(lambda v: self.title.call(model='edit'))
         self.card_counter = component.Component(CardsCounter(self))
-        self.cards = [component.Component(card.Card(c.id, self, self.assets_manager, c))
-                      for c in data.cards]
+        self.cards = [
+            component.Component(
+                cards_service.create_component(
+                    c.id, self, self.assets_manager, c
+                )
+            )
+            for c in data.cards
+        ]
         self.new_card = component.Component(
             card.NewCard(self)).on_answer(self.create_card)
 
@@ -220,24 +229,50 @@ class Column(object):
             - ``text`` -- the title of the new card
         """
         if text:
-            if self.can_add_cards:
-                new_card = DataCard.create_card(self.data, text, security.get_user().data)
-                self.cards.append(component.Component(card.Card(new_card.id,
-                                                                self,
-                                                                self.assets_manager),
-                                                      'new'))
-                values = {'column_id': self.id,
-                          'column': self.title().text,
-                          'card': new_card.title}
-                notifications.add_history(self.board.data, new_card,
-                                          security.get_user().data,
-                                          u'card_create', values)
-                scard = fts_schema.Card.from_model(new_card)
-                self.search_engine.add_document(scard)
-                self.search_engine.commit()
-                self.set_reload_search()
-            else:
-                raise exceptions.KanshaException(_('Limit of cards reached fo this list'))
+            if not self.can_add_cards:
+                raise exceptions.KanshaException(
+                    _('Limit of cards reached fo this list')
+                )
+
+            self.append_card(
+                self._cards_service.create_component(
+                    self._cards_service.create_card(
+                        self.data,
+                        text,
+                        security.get_user().data
+                    ).id,
+                    self,
+                    self.assets_manager
+                )
+            )
+
+    def append_card(self, new_card):
+        # reset the new card
+        for card in self.cards:
+            if card.model == 'new':
+                card.model = 0
+
+        self.cards.append(component.Component(new_card, 'new'))
+
+        # notify
+        notifications.add_history(
+            self.board.data,
+            new_card.data,
+            security.get_user().data,
+            u'card_create',
+            {
+                'column_id': self.id,
+                'column': self.title().text,
+                'card': new_card.title().text
+            }
+        )
+
+        # index new card
+        self.search_engine.add_document(
+            fts_schema.Card.from_model(new_card.data)
+        )
+        self.search_engine.commit()
+        self.set_reload_search()
 
     def delete_card(self, c):
         """Delete card
@@ -255,8 +290,14 @@ class Column(object):
         c.delete()
 
     def reload(self):
-        self.cards = [component.Component(card.Card(c.id, self, self.assets_manager, c))
-                      for c in self.data.cards]
+        self.cards = [
+            component.Component(
+                self._cards_service.create_component(
+                    c.id, self, self.assets_manager, c
+                )
+            )
+            for c in self.data.cards
+        ]
 
     def archive_card(self, c):
         """Delete card

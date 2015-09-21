@@ -36,7 +36,8 @@ MenuEntry = collections.namedtuple('MenuEntry', 'label content')
 
 class UserProfile(object):
 
-    def __init__(self, app_title, app_banner, custom_css, user, mail_sender, assets_manager, search_engine):
+    def __init__(self, app_title, app_banner, custom_css, user, mail_sender,
+                 assets_manager, search_engine, services_service):
         """
         In:
          - ``user`` -- user (DataUser instance)
@@ -46,7 +47,8 @@ class UserProfile(object):
         self.menu = collections.OrderedDict()
         self.menu['boards'] = MenuEntry(
             _L(u'Boards'),
-            UserBoards(
+            services_service(
+                UserBoards,
                 app_title,
                 app_banner,
                 custom_css,
@@ -57,7 +59,12 @@ class UserProfile(object):
         )
         self.menu['my-cards'] = MenuEntry(
             _L(u'My cards'),
-            UserCards(user, assets_manager, search_engine)
+            services_service(
+                UserCards, 
+                user, 
+                assets_manager, 
+                search_engine
+            )
         )
         self.menu['profile'] = MenuEntry(
             _L(u'Profile'),

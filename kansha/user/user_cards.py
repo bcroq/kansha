@@ -15,7 +15,6 @@ from itertools import groupby, cycle
 from sqlalchemy import desc
 
 from nagare import (component, presentation, i18n)
-from ..card import comp as card
 from ..card.models import DataCard
 from ..column.models import DataColumn
 from ..board.models import DataBoard
@@ -31,11 +30,12 @@ class UserCards(object):
         'due': (lambda: desc(DataCard.due_date), lambda c: c().data.due_date)
     }
 
-    def __init__(self, user, assets_manager, search_engine):
+    def __init__(self, user, assets_manager, search_engine, cards_service):
         """
         In:
          - ``user`` -- DataUser instance
         """
+        self._cards_service = cards_service
         self.user = user
         self.assets_manager = assets_manager
         self.search_engine = search_engine
@@ -73,11 +73,13 @@ class UserCards(object):
             order = [self.KEYS[feat][0]() for feat in self.order_by]
             self._cards = [
                 component.Component(
-                    card.Card(c.id, None, self.assets_manager, c)
+                    self._cards_service.create_component(
+                        c.id, None, self.assets_manager, c
+                    )
                 )
                 for c in (self.user.cards.join(DataCard.column).
                           join(DataColumn.board).
-                          filter(DataColumn.archive==False).
+                          filter(DataColumn.archive == False).
                           filter(DataBoard.id.in_(b.id for b in self.user.boards)).
                           order_by(*order))
             ]

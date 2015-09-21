@@ -57,6 +57,7 @@ setup(
                     'postgres': ('psycopg2',),
                     'mysql': ('oursql',),
                     'elastic': ('elasticsearch',)},
+    tests_require=['mock'],
     message_extractors={'kansha': [('**.py', 'python', None)]},
     entry_points="""
       [console_scripts]
@@ -73,6 +74,8 @@ setup(
 
       [kansha.services]
       authentication = kansha.services.authentication_repository:AuthenticationsRepository
+      cards = kansha.card.services:CardsService
+      columns = kansha.column.services:ColumnsService
 
       [kansha.authentication]
       dblogin = kansha.authentication.database.forms:Login
