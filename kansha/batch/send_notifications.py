@@ -14,14 +14,8 @@ from kansha.user import usermanager
 from kansha import notifications
 from nagare.namespaces import xhtml
 
-APP = 'kansha'
 
-
-def main(hours, url):
-    global apps
-    app = apps[APP]
-
-
+def main(app, hours, url):
     # Group users by board
     boards = {}
     for subscriber in notifications.get_subscribers():
@@ -79,12 +73,20 @@ def main(hours, url):
                         h << h.td(usr.email)
                         h << h.td(usr.registration_date.isoformat())
 
-        app.mail_sender.send('Activity report for '+url, [app.activity_monitor], u'', h.root.write_htmlstring())
+        app.mail_sender.send('Activity report for ' + url, [app.activity_monitor], u'', h.root.write_htmlstring())
 
 
+def batch():
+    if len(sys.argv) < 3 or not sys.argv[1].isdigit():
+        print 'Please provide the timespan (in hours, as integer) of the summary and the root URL of the app'
+        sys.exit(0)
 
-# call main
-if len(sys.argv) < 3 or not sys.argv[1].isdigit():
-    print 'Please provide the timespan (in hours, as integer) of the summary and the root URL of the app'
-    sys.exit(0)
-main(int(sys.argv[1]), sys.argv[2])
+    main(
+        apps['kansha'],  # noqa @UndefinedVariable
+        int(sys.argv[1]),
+        sys.argv[2]
+    )
+
+
+if __name__ == 'send_notifications':
+    batch()
