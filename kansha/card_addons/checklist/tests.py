@@ -34,15 +34,10 @@ class ChecklistTest(CardExtensionTestCase):
 
     def test_items(self):
         ck = self.extension.add_checklist()
-        self.assertEqual(ck.total_items, 0)
         ck.add_item_from_str(u'test')
-        self.assertEqual(ck.total_items, 1)
         ck.add_item_from_str(u'test2')
-        self.assertEqual(ck.total_items, 2)
         ck.add_item_from_str(u'test3')
-        self.assertEqual(ck.total_items, 3)
         ck.delete_index(1)
-        self.assertEqual(ck.total_items, 2)
         ck.set_index(1)
         self.assertEqual(ck.data.index, 1)
         self.assertEqual(ck.items[0]().get_title(), u'test')
@@ -50,13 +45,7 @@ class ChecklistTest(CardExtensionTestCase):
 
     def test_item(self):
         ck = self.extension.add_checklist()
-        self.assertEqual(ck.total_items, 0)
-        self.assertEqual(ck.nb_items, 0)
-        self.assertEqual(ck.progress, 0)
         ck.add_item_from_str(u'test')
-        self.assertEqual(ck.total_items, 1)
-        self.assertEqual(ck.nb_items, 0)
-        self.assertEqual(ck.progress, 0)
         item = ck.items[0]()
         self.assertEqual(item.get_title(), u'test')
         item.set_title(u'test2')
@@ -64,11 +53,7 @@ class ChecklistTest(CardExtensionTestCase):
         self.assertFalse(item.done)
         item.set_done()
         self.assertTrue(item.done)
-        self.assertEqual(ck.total_items, 1)
-        self.assertEqual(ck.nb_items, 1)
-        self.assertEqual(ck.progress, 100)
         ck.add_item_from_str(u'test')
-        self.assertEqual(ck.progress, 50)
         item.set_done()
         self.assertFalse(item.done)
 
@@ -89,8 +74,6 @@ class ChecklistTest(CardExtensionTestCase):
 
         cpy = self.extension_copy
         self.assertEqual(len(cpy.checklists), 2)
-        self.assertEqual(cpy.total_items, 3)
-        self.assertEqual(cpy.nb_items, 0)
         ck = cpy.checklists[0]()
         self.assertEqual(ck.get_title(), u'test')
         self.assertEqual(ck.data.index, 0)
@@ -115,5 +98,3 @@ test item 2
 test list 2
 test item 3
 test item 4''')
-
-

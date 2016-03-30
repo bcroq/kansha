@@ -7,6 +7,7 @@
 # this distribution.
 #--
 
+from peak import rules
 from nagare.i18n import _
 from nagare import presentation, security, var, ajax
 
@@ -73,8 +74,12 @@ def render_Checklists(self, h, comp, model):
 @presentation.render_for(Checklists, 'badge')
 def render_Checklists_badge(self, h, comp, model):
     if self.checklists:
+        count = ItemsCount()
+        count.visit(self)
         with h.span(class_='badge'):
-            h << h.span(h.i(class_='icon-list'), ' ', self.nb_items, ' / ', self.total_items, class_='label')
+            with h.span(class_='label'):
+                h << h.i(class_='icon-list')
+                h << ' {} / {}'.format(count.checked, count.total)
     return h.root
 
 
@@ -98,7 +103,9 @@ def render_Checklist(self, h, comp, model):
 
 @presentation.render_for(Checklist, 'progress')
 def render_Checklist_progress(self, h, comp, model):
-    progress = self.progress
+    count = ItemsCount()
+    count.visit(self)
+    progress = count.checked * 100 / count.total
     with h.div(class_='progress progress-success'):
         h << h.div(class_='bar', style='width:%s%%' % progress)
         h << h.span(progress, u'%', class_='percent')
@@ -111,3 +118,30 @@ def render_ChecklistItem(self, h, comp, model):
     h << h.span(self.title.render(h.AsyncRenderer()), class_='done' if self.done else '')
     h << h.a(h.i(class_='icon-cancel'), class_='delete').action(comp.answer, 'delete')
     return h.root
+
+
+class ItemsCount(object):
+
+    def __init__(self):
+        self.total = 0
+        self.checked = 0
+
+    @rules.abstract
+    def visit(self, element):
+        pass
+
+    @rules.when(visit, ChecklistItem)
+    def _visit_item(self, item):
+        self.total += 1
+        if item.done:
+            self.checked += 1
+
+    @rules.when(visit, Checklist)
+    def _visit_checklist(self, checklist):
+        for item in checklist.items:
+            self.visit(item())
+
+    @rules.when(visit, Checklists)
+    def _visit_checklists(self, checklists):
+        for checklist in checklists.checklists:
+            self.visit(checklist())

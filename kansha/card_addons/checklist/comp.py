@@ -168,21 +168,6 @@ class Checklist(object):
         self.data.purge()
         self.data.delete()
 
-
-    @property
-    def total_items(self):
-        return len(self.items)
-
-    @property
-    def nb_items(self):
-        return len([item for item in self.items if item().done])
-
-    @property
-    def progress(self):
-        if not self.items:
-            return 0
-        return self.nb_items * 100 / self.total_items
-
     @property
     def data(self):
         return DataChecklist.get(self.id)
@@ -223,14 +208,6 @@ class Checklists(CardExtension):
             checklist = checklist()
             new_checklist = self.add_checklist()
             new_checklist.update(checklist)
-
-    @property
-    def nb_items(self):
-        return sum([cl().nb_items for cl in self.checklists])
-
-    @property
-    def total_items(self):
-        return sum([cl().total_items for cl in self.checklists])
 
     def delete_checklist(self, index):
         cl = self.checklists.pop(index)()
